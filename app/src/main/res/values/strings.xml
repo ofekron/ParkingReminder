@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Parking Reminder</string>
+    <string name="stop">Stop</string>
+    <string name="parking_reminder">Parking Reminder</string>
+    <string name="parking_reminder_driving">Did you pay your parking ticket?</string>
+    <string name="geofence">GeoReminder</string>
+    <string name="geofence_error">Couldnt create geofence</string>
+    <string name="geofence_reminder_is_activated">Geofence reminder is activated</string>
+    <string name="geofence_reminder_desc">You will be notified when you are 150 meters away from initial location</string>
+    <string name="couldnt_get_location">Couldnt get location</string>
+    <string name="parking_pay_app">Choose your parking app</string>
+    <string name="parking_reminder_desc">Parking Reminder is here for you</string>
+    <string name="parking_location">Parking Location</string>
+</resources>
