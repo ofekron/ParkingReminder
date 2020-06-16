@@ -8,23 +8,36 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
-import androidx.core.app.ActivityCompat.*
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofencingClient
-import com.google.android.gms.location.GeofencingRequest
-import com.google.android.gms.location.LocationServices
-import com.ofekdev.prefs.GsonPreference
+import com.google.android.gms.location.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers.IO
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 const val GEOFENCE_RADIUS_IN_METERS = 150.0f
 const val GEOFENCE_EXPIRATION_IN_MILLISECONDS = 24*60*60*1000L
 const val GEOFENCE_ID="parking_reminder"
+const val TAG = "LCOATION"
+
+suspend fun FusedLocationProviderClient.lastLocation() : Location? = suspendCoroutine {
+    lastLocation.addOnFailureListener { e->
+        it.resumeWithException(e)
+    }.addOnSuccessListener { l->
+        l?.apply {
+            it.resume(l)
+        }?:run{
+            it.resumeWithException(Exception("couldnt get location"))
+        }
+    }
+}
 
 class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
 
-    lateinit var geofencingClient: GeofencingClient
     private fun getGeofencingRequest(location: Location): GeofencingRequest {
         var geofenceList = mutableListOf<Geofence> ()
         geofenceList.add(
@@ -55,33 +68,47 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
             addGeofences(geofenceList)
         }.build()
     }
-    override fun onReceive(context: Context, intent: Intent) {
-        when {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                var fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                fusedLocationClient.lastLocation
-                    .addOnSuccessListener { location : Location? ->
-                        location?.let {
-                            geofencingClient = LocationServices.getGeofencingClient(context)
-                            geofencingClient?.addGeofences(getGeofencingRequest(it), PendingIntent.getBroadcast(context, 0, Intent(context, GeofenceBroadcastReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT))
-                                ?.run {
-                                    addOnSuccessListener {
-                                        geofence.set(Location(location.latitude,location.longitude))
-                                        showGeofenceNotification(context)
-                                    }
-                                    addOnFailureListener {
-                                        showError(context, context.getString(R.string.geofence_error))
-                                    }
-                                }
-                        } ?: run {
-                            showError(context, context.getString(R.string.geofence_error))
-                        }
-                    }.addOnFailureListener {
-                        showError(context,context.getString(R.string.couldnt_get_location))
+    suspend fun addGeofence(
+        context : Context,
+        geofencingClient: GeofencingClient,
+        location: Location
+    ) {
+        CoroutineScope(IO).launch {
+            with (location) {
+                with (geofencingClient.addGeofences(getGeofencingRequest(this), PendingIntent.getBroadcast(context, 0, Intent(context, GeofenceBroadcastReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT))) {
+                    addOnSuccessListener {
+                        geofence.set(Location(latitude,longitude))
+                        showGeofenceNotification(context)
                     }
+                    addOnFailureListener {
+                        showError(context, context.getString(R.string.geofence_error))
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+
+        when {
+            hasLocationPermission(context)  -> {
+                var geofencingClient = LocationServices.getGeofencingClient(context)
+                var fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                CoroutineScope(IO).launch {
+                    try {
+                        fusedLocationClient.lastLocation()?.apply {
+                            addGeofence(context,geofencingClient,this)
+                        }
+                    } catch (e : Exception) {
+                        Log.e(TAG,e.message,e)
+                        showError(context, context.getString(R.string.geofence_error))
+                    }
+                }
+
+
+
             }
             else -> {
 
@@ -93,10 +120,13 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
 
             }
         }
+    }
 
-
-
-
+    private fun hasLocationPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun showGeofenceNotification(context: Context) {
