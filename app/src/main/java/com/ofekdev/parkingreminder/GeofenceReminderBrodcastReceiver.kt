@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -42,52 +43,37 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
         var geofenceList = mutableListOf<Geofence> ()
         geofenceList.add(
             Geofence.Builder()
-                // Set the request ID of the geofence. This is a string to identify this
-                // geofence.
                 .setRequestId(GEOFENCE_ID)
-
-                // Set the circular region of this geofence.
                 .setCircularRegion(
                     location.latitude,
                     location.longitude,
                     GEOFENCE_RADIUS_IN_METERS
                 )
-
-                // Set the expiration duration of the geofence. This geofence gets automatically
-                // removed after this period of time.
                 .setExpirationDuration(GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-
-                // Set the transition types of interest. Alerts are only generated for these
-                // transition. We track entry and exit transitions in this sample.
                 .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
-
-                // Create the geofence.
                 .build())
         return GeofencingRequest.Builder().apply {
             setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
             addGeofences(geofenceList)
         }.build()
     }
-    suspend fun addGeofence(
+
+    fun addGeofence(
         context : Context,
         geofencingClient: GeofencingClient,
         location: Location
     ) {
-        CoroutineScope(IO).launch {
-            with (location) {
-                with (geofencingClient.addGeofences(getGeofencingRequest(this), PendingIntent.getBroadcast(context, 0, Intent(context, GeofenceBroadcastReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT))) {
-                    addOnSuccessListener {
-                        geofence.set(Location(latitude,longitude))
-                        showGeofenceNotification(context)
-                    }
-                    addOnFailureListener {
-                        showError(context, context.getString(R.string.geofence_error))
-                    }
+        with (location) {
+            with (geofencingClient.addGeofences(getGeofencingRequest(this), PendingIntent.getBroadcast(context, 0, Intent(context, GeofenceBroadcastReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT))) {
+                addOnSuccessListener {
+                    geofence.set(Location(latitude,longitude))
+                    showGeofenceNotification(context)
+                }
+                addOnFailureListener {
+                    showError(context, context.getString(R.string.geofence_error))
                 }
             }
         }
-
-
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -140,7 +126,6 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
                 action = "ACTION_STOP"
             }, 0))
         with(NotificationManagerCompat.from(context)) {
-            // notificationId is a unique int for each notification that you must define
             notify(15, builder.build())
         }
     }
