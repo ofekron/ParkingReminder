@@ -19,7 +19,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     }
     override fun onReceive(context: Context, intent: Intent) {
         val geofencingEvent = GeofencingEvent.fromIntent(intent)
-        updateNotificationTest(context);
         if (geofencingEvent.hasError()) {
             showError(context,GeofenceStatusCodes.getStatusCodeString(geofencingEvent.errorCode))
         } else {
@@ -40,20 +39,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
 
     }
-    private fun updateNotificationTest(context: Context) {
-        var builder = NotificationCompat.Builder(context, CHANNEL_ID).setSmallIcon(R.drawable.ic_stat_driving)
-            .setContentTitle("TEST")
-            .setContentText("GEOFENCE EVENT")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setOngoing(true).setSound(Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.old_car))
-            .addAction(android.R.drawable.ic_input_delete,context.getString(R.string.stop), PendingIntent.getBroadcast(context, 0, Intent(context, StopGeofenceReceiver::class.java).apply {
-                action = "ACTION_STOP"
-            }, 0))
-        with(NotificationManagerCompat.from(context)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(15, builder.build())
-        }
-    }
+
     private fun updateNotification(context: Context) {
         var builder = NotificationCompat.Builder(context, CHANNEL_ID).setSmallIcon(R.drawable.ic_stat_driving)
             .setContentTitle(context.getString(R.string.parking_reminder))
