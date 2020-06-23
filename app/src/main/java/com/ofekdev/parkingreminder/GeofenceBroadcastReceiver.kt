@@ -10,7 +10,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingEvent
-val MINIMUM_TIME = 1000*60*30
+val MINIMUM_TIME = 1000*60*3
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
     companion object {
         var inside = false
