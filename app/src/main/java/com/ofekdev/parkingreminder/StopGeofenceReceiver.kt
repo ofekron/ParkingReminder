@@ -10,7 +10,7 @@ class StopGeofenceReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         var geofencingClient = LocationServices.getGeofencingClient(context)
-        geofencingClient?.removeGeofences(mutableListOf(GEOFENCE_ID))?.run {
+        geofencingClient?.removeGeofences(listOf(GEOFENCE_ID))?.run {
             addOnSuccessListener {
                 NotificationManagerCompat.from(context).cancel(15);
                 geofence.set(null)
@@ -19,6 +19,5 @@ class StopGeofenceReceiver : BroadcastReceiver() {
                 showError(context, context.getString(R.string.geofence_error))
             }
         }
-
     }
 }

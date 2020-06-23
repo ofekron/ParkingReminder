@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.location.Geofence
@@ -24,10 +25,13 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         } else {
             when(geofencingEvent.geofenceTransition) {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                    Toast.makeText(context,context.getString(R.string.enter),Toast.LENGTH_LONG).show()
                     lastEnter = System.currentTimeMillis()
-                    GeofenceBroadcastReceiver.inside=true
+                    inside=true
+
                 }
                 Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                    Toast.makeText(context,context.getString(R.string.exit),Toast.LENGTH_LONG).show()
                     inside=false
                     count++
                     if (lastEnter+MINIMUM_TIME<=System.currentTimeMillis() || count>=2)

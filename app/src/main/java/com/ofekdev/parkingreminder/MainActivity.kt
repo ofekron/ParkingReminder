@@ -24,6 +24,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -91,29 +92,14 @@ class MarkerWithRadius {
 class MainActivity : AppCompatActivity() {
 
 
-    private lateinit var listener: Preference.PreferenceListener<Location>
     private lateinit var map: GoogleMap
+    private var mr = MarkerWithRadius()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Preference.defaultInit(applicationContext)
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment?
-        listener=object : Preference.PreferenceListener<Location> {
-            var mr = MarkerWithRadius();
-            override fun onValueChanged(
-                firstTime: Boolean,
-                preference: Preference<Location>
-            ) {
-                if (!::map.isInitialized) return
-                preference.get()?.run {
-                    var latlng=LatLng(lat,lng);
-                    mr.show(map,latlng,getString(R.string.parking_location))
-                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(this.lat,this.lng), 15F));
-                }
-            }
-        }
-
 
         mapFragment?.getMapAsync {m ->
             if (m==null) return@getMapAsync
@@ -123,8 +109,13 @@ class MainActivity : AppCompatActivity() {
                 map.uiSettings?.isMyLocationButtonEnabled = true
 
             }
-
-            listener.onValueChanged(true, geofence)
+            geofence.liveData.observe(this, Observer {
+                it.run {
+                    var latlng=LatLng(lat,lng);
+                    mr.show(map,latlng,getString(R.string.parking_location))
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(this.lat,this.lng), 15F));
+                }
+            })
         }
 
         createNotificationChannel()
@@ -140,12 +131,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        geofence.addPreferenceListener(listener,true)
     }
 
     override fun onStop() {
         super.onStop()
-        geofence.removePreferenceListener(listener)
     }
     override fun onRequestPermissionsResult(
         requestCode: Int,

@@ -11,4 +11,6 @@
     <string name="parking_pay_app">Choose your parking app</string>
     <string name="parking_reminder_desc">Parking Reminder is here for you</string>
     <string name="parking_location">Parking Location</string>
+    <string name="enter">Enter parking area</string>
+    <string name="exit">Exit parking area</string>
 </resources>
