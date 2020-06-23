@@ -107,7 +107,6 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (!::map.isInitialized) return
                 preference.get()?.run {
-                    mr.remove()
                     var latlng=LatLng(lat,lng);
                     mr.show(map,latlng,getString(R.string.parking_location))
                     map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(this.lat,this.lng), 15F));
