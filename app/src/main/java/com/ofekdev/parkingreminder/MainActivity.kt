@@ -23,15 +23,14 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.*
 import kotlin.reflect.typeOf
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 import com.ofekdev.prefs.GsonPreference
 import com.ofekdev.prefs.Preference
@@ -43,6 +42,12 @@ import java.util.jar.Manifest
 
 const val CHANNEL_ID: String = "parking_reminder"
 const val PERMISSION_REQUEST_CODE: Int = 1
+fun hasLocationPermission(context: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+}
 fun showError(context: Context, s: String, e: Exception? = null) {
     e?.let {Log.e(TAG,it.message,it)}
     Toast.makeText(context,s , Toast.LENGTH_LONG).show()
@@ -55,11 +60,39 @@ inline fun <reified T: Any> Activity.extraNotNull(key: String, default: T? = nul
     val value = intent?.extras?.get(key)
     requireNotNull(if (value is T) value else default) { key }
 }
+class MarkerWithRadius {
+    private var marker: Marker? = null
+    private var circle: Circle? = null
+
+    public fun show(map : GoogleMap,latlng : LatLng,title : String) {
+        remove()
+        marker=map?.addMarker(MarkerOptions()
+            .position(latlng)
+            .title(title)
+        )
+        circle=map?.addCircle(CircleOptions()
+                .center(latlng)
+                .radius(GEOFENCE_RADIUS_IN_METERS.toDouble())
+                .strokeWidth(0f)
+                .fillColor(0x550000FF)
+        )
+
+    }
+    public fun remove() {
+        marker?.apply{
+            remove()
+        }
+        circle?.apply {
+            remove()
+        }
+    }
+
+}
 class MainActivity : AppCompatActivity() {
 
 
     private lateinit var listener: Preference.PreferenceListener<Location>
-    private var map: GoogleMap? = null
+    private lateinit var map: GoogleMap
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -67,25 +100,31 @@ class MainActivity : AppCompatActivity() {
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment?
         listener=object : Preference.PreferenceListener<Location> {
-            private var marker: Marker? = null
+            var mr = MarkerWithRadius();
             override fun onValueChanged(
                 firstTime: Boolean,
                 preference: Preference<Location>
             ) {
-                if (map==null) return
-                marker?.apply{
-                    this.remove()
-                }
+                if (!::map.isInitialized) return
                 preference.get()?.run {
-                    marker=map?.addMarker(MarkerOptions().position(LatLng(this.lat,this.lng)).title(getString(R.string.parking_location)))
-                    map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(this.lat,this.lng), 15F));
+                    mr.remove()
+                    var latlng=LatLng(lat,lng);
+                    mr.show(map,latlng,getString(R.string.parking_location))
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(this.lat,this.lng), 15F));
                 }
             }
         }
 
 
         mapFragment?.getMapAsync {m ->
+            if (m==null) return@getMapAsync
             map=m
+            if (hasLocationPermission(this)) {
+                map.isMyLocationEnabled = true;
+                map.uiSettings?.isMyLocationButtonEnabled = true
+
+            }
+
             listener.onValueChanged(true, geofence)
         }
 
