@@ -20,7 +20,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-const val GEOFENCE_RADIUS_IN_METERS = 150.0f
+const val GEOFENCE_RADIUS_IN_METERS = 3.0f
 const val GEOFENCE_EXPIRATION_IN_MILLISECONDS = 24*60*60*1000L
 const val GEOFENCE_ID="parking_reminder"
 const val TAG = "LCOATION"
@@ -64,7 +64,14 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
         location: Location
     ) {
         with (location) {
-            with (geofencingClient.addGeofences(getGeofencingRequest(this), PendingIntent.getBroadcast(context, 0, Intent(context, GeofenceBroadcastReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT))) {
+            val geofencingRequest = getGeofencingRequest(this)
+            val broadcast = PendingIntent.getBroadcast(
+                context,
+                0,
+                Intent(context, GeofenceBroadcastReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            with (geofencingClient.addGeofences(geofencingRequest, broadcast)) {
                 addOnSuccessListener {
                     geofence.set(Location(latitude,longitude))
                     showGeofenceNotification(context)
@@ -82,7 +89,7 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
             hasLocationPermission(context)  -> {
                 var geofencingClient = LocationServices.getGeofencingClient(context)
                 var fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                CoroutineScope(IO).launch {
+                CoroutineScope(Main).launch {
                     try {
                         fusedLocationClient.lastLocation()?.apply {
                             addGeofence(context,geofencingClient,this)

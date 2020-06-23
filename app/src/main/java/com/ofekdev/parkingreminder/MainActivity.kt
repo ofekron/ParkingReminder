@@ -16,6 +16,8 @@ import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -77,6 +79,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+
         mapFragment?.getMapAsync {m ->
             map=m
             m.isMyLocationEnabled = true;
