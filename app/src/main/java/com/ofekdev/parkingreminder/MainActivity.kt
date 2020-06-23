@@ -15,6 +15,7 @@ import android.graphics.Color
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -35,13 +36,15 @@ import com.google.android.material.snackbar.Snackbar
 import com.ofekdev.prefs.GsonPreference
 import com.ofekdev.prefs.Preference
 import kotlinx.android.synthetic.main.activity_main.*
+import java.lang.Exception
 import java.security.Permission
 import java.util.jar.Manifest
 
 
 const val CHANNEL_ID: String = "parking_reminder"
 const val PERMISSION_REQUEST_CODE: Int = 1
-fun showError(context: Context, s: String) {
+fun showError(context: Context, s: String, e: Exception? = null) {
+    e?.let {Log.e(TAG,it.message,it)}
     Toast.makeText(context,s , Toast.LENGTH_LONG).show()
 }
 inline fun <reified T: Any> Activity.extra(key: String, default: T? = null) = lazy {
@@ -83,19 +86,16 @@ class MainActivity : AppCompatActivity() {
 
         mapFragment?.getMapAsync {m ->
             map=m
-            m.isMyLocationEnabled = true;
-            m.uiSettings.isMyLocationButtonEnabled = true
-
             listener.onValueChanged(true, geofence)
         }
 
         createNotificationChannel()
-        extra<String>("permission",null)?.value?.let {
+        extra<String>("permission",null).value?.let {
             ActivityCompat.requestPermissions(this,arrayOf(it),PERMISSION_REQUEST_CODE)
         }
         val fab: View = findViewById(R.id.floatingActionButton)
         fab.setOnClickListener { view ->
-            ActivityCompat.requestPermissions(this,arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION),1)
+            ActivityCompat.requestPermissions(this,arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION),PERMISSION_REQUEST_CODE)
         }
 
     }
@@ -119,6 +119,8 @@ class MainActivity : AppCompatActivity() {
                 // If request is cancelled, the result arrays are empty.
                 if ((grantResults.isNotEmpty() &&
                             grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    map?.isMyLocationEnabled = true;
+                    map?.uiSettings?.isMyLocationButtonEnabled = true
                     super.onRequestPermissionsResult(requestCode, permissions, grantResults)
                     GeofenceReminderBrodcastReceiver().onReceive(this,Intent())
                     val intent = Intent(Intent.ACTION_SEND)

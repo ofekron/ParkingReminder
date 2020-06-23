@@ -20,22 +20,12 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-const val GEOFENCE_RADIUS_IN_METERS = 3.0f
+const val GEOFENCE_RADIUS_IN_METERS = 150.0f
 const val GEOFENCE_EXPIRATION_IN_MILLISECONDS = 24*60*60*1000L
 const val GEOFENCE_ID="parking_reminder"
 const val TAG = "LCOATION"
 
-suspend fun FusedLocationProviderClient.lastLocation() : Location? = suspendCoroutine {
-    lastLocation.addOnFailureListener { e->
-        it.resumeWithException(e)
-    }.addOnSuccessListener { l->
-        l?.apply {
-            it.resume(l)
-        }?:run{
-            it.resumeWithException(Exception("couldnt get location"))
-        }
-    }
-}
+
 
 class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
 
@@ -89,13 +79,12 @@ class GeofenceReminderBrodcastReceiver : BroadcastReceiver() {
             hasLocationPermission(context)  -> {
                 var geofencingClient = LocationServices.getGeofencingClient(context)
                 var fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                CoroutineScope(Main).launch {
-                    try {
-                        fusedLocationClient.lastLocation()?.apply {
-                            addGeofence(context,geofencingClient,this)
-                        }
-                    } catch (e : Exception) {
-                        Log.e(TAG,e.message,e)
+                fusedLocationClient.lastLocation.addOnFailureListener { e->
+                    showError(context, context.getString(R.string.geofence_error),e)
+                }.addOnSuccessListener { l->
+                    l?.apply {
+                        addGeofence(context,geofencingClient,this)
+                    }?:run{
                         showError(context, context.getString(R.string.geofence_error))
                     }
                 }
